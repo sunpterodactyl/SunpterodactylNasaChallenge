@@ -2,7 +2,22 @@
 
 Find Earth analogue sites for Moon and Mars targets. Pick a target, set metrics and weights (manually or via LLM), then compare ranked candidates on a map and in 3D.
 
-> For development and testing Mock data is placed in v1 — values in `backend/data.py` are placeholders, not real measurements.
+> Mock data in v1 — values in `backend/llm/data.py` are placeholders, not real measurements.
+
+## Layout
+
+```
+app/
+  frontend/                 # Vite + React UI
+  backend/
+    api/
+      index.py              # FastAPI app
+      routes/               # HTTP handlers
+      services/             # business logic
+      db/                   # catalogue access (mock for now)
+    llm/                    # models, mock data, rules, LLM suggest
+  api/index.py              # Vercel entry (re-exports backend.api.index:app)
+```
 
 ## Stack
 
@@ -13,12 +28,13 @@ Find Earth analogue sites for Moon and Mars targets. Pick a target, set metrics 
 ## Local development
 
 ```bash
-# Backend
+# Backend (from app/)
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # add OPENAI_API_KEY and/or ANTHROPIC_API_KEY
-uvicorn api.index:app --reload --port 8000
+uvicorn backend.api.index:app --reload --port 8000
+# or: uvicorn api.index:app --reload --port 8000
 
 # Frontend (separate terminal)
 npm install
@@ -40,4 +56,4 @@ Or use `vercel dev` for a combined local setup.
 
 ## Iteration 1
 
-Hard rules and real scoring live in `backend/rules.py` (placeholder scorer keeps the UI working). See `AGENT.md` for the full build spec.
+Hard rules and real scoring live in `backend/llm/rules.py` (placeholder scorer keeps the UI working). See `AGENT.md` for the full build spec and `implementation.md` for gaps and the learning plan.
