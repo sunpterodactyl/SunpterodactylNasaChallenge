@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.venv/
+__pycache__/
+*.pyc
+.env
+.vercel
+.DS_Store
+*.egg-info/
+.Python
+implementation.md
+AGENT.md
