@@ -14,7 +14,8 @@ Full spec: @docs/SPEC.md (read the relevant section before starting each milesto
 - Verify data sources: python pipeline/verify_sources.py
 - Build corpus: python pipeline/build_corpus.py
 - Fit model artifacts: python pipeline/fit_model.py
-- CLI search: python -m backend.search --target jezero_delta --objective mobility --stage early
+- Validate model: python pipeline/validate.py
+- CLI search: python -m backend.search --target marius_hills --objective mobility --stage early
 
 ## Rules
 - Work ONE milestone at a time (SPEC section 10). After each, stop and report the acceptance results.

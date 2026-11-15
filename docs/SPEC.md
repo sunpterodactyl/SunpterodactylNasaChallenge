@@ -85,7 +85,7 @@ def profile_dist(p, t):                        # shape only; bidirectional
     return min(ddtw(p, t), ddtw(p, t[::-1]))
 ```
 
-Test the rotation sign on a synthetic ridge first: the profile must cut ACROSS the ridge. If DDTW is slow, use numba `@njit` or `dtaidistance` (pipeline only; runtime stays numpy, so precompute Earth profiles in pipeline and keep the DP in numpy).
+Test the rotation sign on a synthetic ridge first: the profile must cut ACROSS the ridge. **(M2: with scipy the sign must be `+np.degrees(th)`; `-` fails at 45 deg. See DATA_NOTES.md.)** If DDTW is slow, use numba `@njit` or `dtaidistance` (pipeline only; runtime stays numpy, so precompute Earth profiles in pipeline and keep the DP in numpy).
 
 **6.2 Texture (VRM, ACR and roughness; Mahalanobis on Earth covariance)**
 

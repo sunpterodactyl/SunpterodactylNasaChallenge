@@ -101,3 +101,37 @@ Notes:
   tycho_rim 988 m. The `tycho_rim` coordinate (-43.3, -11.4) is Tycho's
   centre. The 32 km patch shows the central peak and floor, not the rim.
   Either rename it or move it about 0.7 deg off-centre onto the rim.
+
+# Fidelity model and validation (M2)
+
+`python pipeline/fit_model.py` then `python pipeline/validate.py`.
+
+- **Rotation sign fixed.** SPEC 6.1 rotates by `-degrees(th)`. With
+  `scipy.ndimage.rotate` that leaves the profile running *along* a diagonal
+  ridge (profile ptp 0 at 45 and 135 deg). `+degrees(th)` cuts across it at
+  every angle (ptp ~99 m for a 100 m ridge), so `common.aligned_profile` uses `+`.
+- **Novelty thresholds** (nearest texture neighbour in another region):
+  known <= 0.153, edge <= 1.601.
+
+Synthetic checks: ridge profiles at 0/20/45/70/90/135 deg are within 0.0001
+DDTW of each other (noise patch: 0.073); an Earth patch queried against itself
+scores F = 0.998 (rank 1 of 451); flattest (uyuni_00) vs most rugged
+(mauna_loa_00) scores F = 0.150.
+
+Region-blocked precision at 5 (19 held-out regions, region score = best patch):
+
+| method | P@5 |
+| --- | --- |
+| random | 0.175 |
+| Euclidean on z-scored features | 0.200 |
+| texture only | 0.232 |
+| profile only | **0.274** |
+| combined fidelity | 0.253 |
+
+**Honest negative:** combined fidelity beats random and the Euclidean
+baseline, but profile-only beats combined. With 19 regions and hand-assigned
+kinds, the differences are small and noisy.
+
+Bootstrap stability (30 resamples within regions), top-3 regions unchanged:
+marius_hills 10/30, taurus_littrow 18/30, tycho_rim 22/30. Marius Hills' top
+three are close in score, so their order is unstable.
