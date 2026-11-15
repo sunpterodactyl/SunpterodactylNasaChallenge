@@ -1,74 +1,59 @@
 import { useState } from 'react'
-import { useStore } from '../store'
+import type { Session } from '../types'
 
-export default function Sessions() {
-  const sessions = useStore((s) => s.sessions)
-  const saveSession = useStore((s) => s.saveSession)
-  const openSession = useStore((s) => s.openSession)
-  const renameSession = useStore((s) => s.renameSession)
-  const deleteSession = useStore((s) => s.deleteSession)
-  const exportSession = useStore((s) => s.exportSession)
+interface Props {
+  sessions: Session[]
+  notes: string
+  starredCount: number
+  onNotes: (s: string) => void
+  onSave: (name: string) => void
+  onLoad: (s: Session) => void
+  onDelete: (name: string) => void
+}
+
+export default function Sessions({ sessions, notes, starredCount, onNotes, onSave, onLoad, onDelete }: Props) {
   const [name, setName] = useState('')
-
   return (
-    <div className="sessions">
-      <span className="section-label">Saved sessions</span>
-      <div className="session-save">
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Session name"
-          aria-label="Session name"
-        />
-        <button
-          type="button"
-          onClick={() => {
-            saveSession(name)
-            setName('')
-          }}
-        >
+    <section className="sessions" aria-labelledby="sessions-h">
+      <h2 id="sessions-h">Sessions</h2>
+      <label className="field">
+        <span>Notes</span>
+        <textarea rows={2} value={notes} onChange={(e) => onNotes(e.target.value)} placeholder="What are you testing?" />
+      </label>
+      <form
+        className="save-row"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (!name.trim()) return
+          onSave(name.trim())
+          setName('')
+        }}
+      >
+        <input aria-label="Session name" placeholder="Session name" value={name} onChange={(e) => setName(e.target.value)} />
+        <button type="submit" disabled={!name.trim()}>
           Save
         </button>
-      </div>
-
-      {sessions.length === 0 && (
-        <p className="mock-note">No saved sessions yet. Star results, then save.</p>
+      </form>
+      <small className="hint">Saves the brief, {starredCount} starred patch{starredCount === 1 ? '' : 'es'} and notes in this browser.</small>
+      {sessions.length === 0 ? (
+        <p className="empty-note">No saved sessions yet.</p>
+      ) : (
+        <ul className="session-list">
+          {sessions.map((s) => (
+            <li key={s.name}>
+              <button className="link" onClick={() => onLoad(s)} title={s.notes || undefined}>
+                <b>{s.name}</b>
+                <span>
+                  {s.brief.target_id} · {s.brief.objective} · {s.starred.length}★
+                </span>
+              </button>
+              <button className="icon" aria-label={`Delete session ${s.name}`} onClick={() => onDelete(s.name)}>
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
-
-      {sessions.map((s) => (
-        <div key={s.id} className="session-row">
-          <strong>{s.name}</strong>
-          <time dateTime={s.createdAt}>
-            {new Date(s.createdAt).toLocaleString()} · {s.starred.length} starred
-          </time>
-          <div className="session-actions">
-            <button type="button" onClick={() => void openSession(s.id)}>
-              Open
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const next = window.prompt('Rename session', s.name)
-                if (next != null) renameSession(s.id, next)
-              }}
-            >
-              Rename
-            </button>
-            <button type="button" onClick={() => exportSession(s.id)}>
-              Export
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm(`Delete “${s.name}”?`)) deleteSession(s.id)
-              }}
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
+    </section>
   )
 }

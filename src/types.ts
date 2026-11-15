@@ -1,75 +1,71 @@
-export type Category = 'terrain' | 'isru' | 'human_factors'
-export type Evidence = 'direct' | 'indirect'
-export type Provider = 'openai' | 'anthropic'
+export type Grid = number[][]
 
-export interface Metric {
-  id: string
-  label: string
-  unit: string
-  description: string
-}
+export type Objective = 'mobility' | 'navigation' | 'comms_los' | 'eva_traverse'
+export type Stage = 'early' | 'late'
+export type Mode = 'shape' | 'shape_magnitude'
+export type Novelty = 'known' | 'edge' | 'novel'
+export type Component = 'profile' | 'texture' | 'magnitude'
 
 export interface Target {
   id: string
+  name: string
   body: 'moon' | 'mars'
-  name: string
   lat: number
   lon: number
-  values: Record<string, number>
-  evidence: Record<string, Evidence>
-}
-
-export interface Candidate {
-  id: string
-  name: string
-  country: string
-  lat: number
-  lon: number
-  category: Category
-  cost_index: number
-  values: Record<string, number>
-}
-
-export interface SearchRequest {
-  target_id: string
-  metric_ids: string[]
-  weights: Record<string, number>
-  categories: Category[]
-  max_cost: number
-  prompt?: string | null
-}
-
-export interface Match {
-  candidate: Candidate
-  score: number
-  coverage: number
-  breakdown: Record<string, number>
-  tier: Evidence | null
-}
-
-export interface MetricPick {
-  metric_id: string
-  weight: number
-  rationale: string
-}
-
-export interface Suggestion {
-  picks: MetricPick[]
-  categories: Category[]
-  summary: string
+  grid: Grid
 }
 
 export interface Catalog {
-  metrics: Metric[]
   targets: Target[]
-  categories: Category[]
+  objectives: Objective[]
+  stages: Stage[]
+  regions: string[]
+}
+
+export interface Brief {
+  target_id: string
+  objective: Objective
+  stage: Stage
+  mode: Mode
+  max_cost_tier: number
+  max_airport_km: number
+  min_field_months: number
+  k: number
+}
+
+export interface Match {
+  patch_id: string
+  region: string
+  lat: number
+  lon: number
+  kind: string
+  F: number
+  A: number
+  R: number | null
+  C: number | null
+  components: Record<Component, number>
+  weakest: Component
+  pareto: boolean
+  airport_km: number
+  field_months: number | null
+  cost_tier: number | null
+  permit: boolean | null
+  source: string
+  grid: Grid
+}
+
+export interface SearchResult {
+  target_id: string
+  novelty: Novelty
+  best_fidelity: number
+  message: string | null
+  matches: Match[]
 }
 
 export interface Session {
-  id: string
   name: string
-  createdAt: string
-  request: SearchRequest & { provider?: Provider }
+  brief: Brief
   starred: string[]
-  notes: Record<string, string>
+  notes: string
+  saved_at: string
 }
