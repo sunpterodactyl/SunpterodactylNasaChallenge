@@ -18,7 +18,7 @@ from typing import Literal
 import numpy as np
 from pydantic import BaseModel
 
-from backend.model import ARTIFACTS, COMPONENTS, get_model
+from backend.model import ARTIFACTS, COMPONENTS, combine, get_model, pct
 
 OBJECTIVES = {   # PLACEHOLDERS: researcher edits these
     'mobility': ('texture', 'magnitude', 'profile'),
@@ -167,3 +167,59 @@ def catalog():
         targets=[{k: t[k] for k in ('id', 'name', 'body', 'lat', 'lon', 'grid')} for t in targets()],
         objectives=list(OBJECTIVES), stages=list(STAGES), regions=sorted(regions()),
     )
+
+
+def discover(brief, with_grids=True):
+    """Rank NEW bare-terrain patches from outside the curated regions.
+
+    Percentiles are calibrated over the pool of known + exploration patches so
+    that F is comparable between the two. Only exploration patches are returned.
+    They have no curated values: A is airport distance only; R and C are None.
+    """
+    model = get_model()
+    if model.explore is None:
+        raise LookupError('No exploration set in backend/artifacts (run pipeline/explore_corpus.py, then fit_model.py).')
+    if brief.target_id not in model.target_ids:
+        raise KeyError(brief.target_id)
+    x = model.explore
+    active = active_components(brief)
+    d_known = model.distances(brief.target_id, 'known')
+    d_new = model.distances(brief.target_id, 'explore')
+    n_known = len(d_known['texture'])
+    comps_all = {c: pct(np.concatenate([d_known[c], d_new[c]])) for c in COMPONENTS}
+    F_all = combine(comps_all, active)
+    F_known, F_new = F_all[:n_known], F_all[n_known:]
+    novelty = model.novelty(np.concatenate([d_known['texture'], d_new['texture']]))
+
+    ms = []
+    for i in range(len(F_new)):
+        c = {k: round(float(comps_all[k][n_known + i]), 4) for k in COMPONENTS}
+        km = float(x['airport_km'][i])
+        ms.append(dict(
+            idx=i, patch_id=str(x['patch_id'][i]), region=str(x['label'][i]),
+            lat=round(float(x['lat'][i]), 4), lon=round(float(x['lon'][i]), 4), kind='unlabelled',
+            F=round(float(F_new[i]), 4), A=round(1 - min(km, 1000) / 1000, 4), R=None, C=None,
+            components=c, weakest=min(active, key=lambda k: c[k]),
+            airport_km=km, field_months=None, cost_tier=None, permit=None,
+            source=(f'New candidate, not a curated analogue site. Terrain: Copernicus DEM GLO-30. '
+                    f'Chosen because ESA WorldCover 2021 marks {float(x["bare_frac"][i]):.0%} of the cell as bare '
+                    f'or sparse. A: OurAirports, nearest large/medium airport {x["airport"][i]}, {km:.0f} km. '
+                    f'R, C, permit: unknown; check access, land status and safety before planning fieldwork.'),
+        ))
+    ranked, notes = rank(ms, brief)
+    best_known = int(np.argmax(F_known))
+    beat = int((F_new > F_known[best_known]).sum())
+    summary = (f'Scored {len(F_new)} new bare-terrain patches against the {n_known} known ones. '
+               f'Best known analogue: {model.patch_id[best_known]} (F {F_known[best_known]:.3f}); '
+               f'{beat} new patch{"es" if beat != 1 else ""} score higher.')
+    best = float(F_new.max())
+    if not ranked:
+        gate = STAGES[brief.stage]['gate']
+        notes.append(f'No new patch passes the {brief.stage}-stage gate (F >= {gate}) and filters. '
+                     f'Best new fidelity: {best:.3f}.')
+    for m in ranked:
+        i = m.pop('idx')
+        if with_grids:
+            m['grid'] = x['grid'][i].tolist()
+    return dict(target_id=brief.target_id, novelty=novelty, best_fidelity=round(best, 4),
+                message=' '.join([summary] + notes), matches=ranked)

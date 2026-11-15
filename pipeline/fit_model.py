@@ -8,9 +8,12 @@ statistics and the novelty thresholds, and writes:
   backend/artifacts/model.npz     arrays the API loads once at import
   backend/artifacts/targets.json  target metadata and 64x64 relative grids
   backend/artifacts/regions.json  curated region table + nearest airport (M3)
+  backend/artifacts/explore.npz   exploration patches outside the curated regions
+                                  (only if pipeline/out/explore_patches.npz exists)
   public/locations.json           region and patch coordinates for the frontend map
 
 `python pipeline/fit_model.py --locations` rewrites only public/locations.json.
+`python pipeline/fit_model.py --explore` refits only explore.npz and locations.json.
 
 pipeline/data/airports.csv is OurAirports (public domain), downloaded once from
 https://davidmegginson.github.io/ourairports-data/airports.csv (gitignored).
@@ -46,10 +49,7 @@ def haversine_km(lat1, lon1, lat2, lon2):
 
 def region_table(kept_regions):
     """Curated columns as given (blank -> None) plus nearest large/medium airport."""
-    import pandas as pd
-    ap = pd.read_csv(AIRPORTS_CSV, usecols=['type', 'name', 'latitude_deg', 'longitude_deg', 'iso_country'],
-                     keep_default_na=False)
-    ap = ap[ap['type'].isin(['large_airport', 'medium_airport'])].reset_index(drop=True)
+    ap = load_airports()
     num = lambda v, f: f(v) if v not in ('', None) else None   # noqa: E731
     rows = []
     for r in csv.DictReader(REGIONS_CSV.open()):
@@ -66,6 +66,42 @@ def region_table(kept_regions):
             source=r['source'] or None,
         ))
     return rows
+
+
+def load_airports():
+    import pandas as pd
+    ap = pd.read_csv(AIRPORTS_CSV, usecols=['type', 'name', 'latitude_deg', 'longitude_deg', 'iso_country',
+                                            'municipality'], keep_default_na=False)
+    return ap[ap['type'].isin(['large_airport', 'medium_airport'])].reset_index(drop=True)
+
+
+def fit_explore():
+    """Featurise the exploration patches and label each by its nearest large/medium airport."""
+    src = OUT / 'explore_patches.npz'
+    if not src.exists():
+        print('No pipeline/out/explore_patches.npz; skipping exploration set.')
+        return
+    x = np.load(src)
+    print(f'Featurising {len(x["z"])} exploration patches...')
+    prof, tex, mag = featurise(x['z'])
+    ap = load_airports()
+    alat, alon = ap['latitude_deg'].values, ap['longitude_deg'].values
+    km, airport, label = [], [], []
+    for la, lo in zip(x['lat'], x['lon']):
+        d = haversine_km(la, lo, alat, alon)
+        i = int(np.argmin(d))
+        town = ap['municipality'][i] or ap['name'][i]
+        km.append(round(float(d[i]), 1))
+        airport.append(f"{ap['name'][i]} ({ap['iso_country'][i]}, {ap['type'][i].replace('_', ' ')})")
+        label.append(f"{la:.2f}, {lo:.2f} · {d[i]:.0f} km from {town}, {ap['iso_country'][i]}")
+    np.savez_compressed(
+        ART / 'explore.npz',
+        patch_id=x['patch_id'], lat=x['lat'], lon=x['lon'], bare_frac=x['bare_frac'],
+        label=np.array(label), airport=np.array(airport), airport_km=np.array(km),
+        grid=np.stack([relative_grid(z) for z in x['z']]),
+        profile=prof, texture=tex, mag=mag, source=x['source'],
+    )
+    print(f'Saved {ART / "explore.npz"} ({(ART / "explore.npz").stat().st_size / 1e6:.1f} MB)')
 
 
 def featurise(Z):
@@ -112,10 +148,15 @@ def export_locations():
         ))
     patches = [dict(id=str(i), region=str(r), lat=round(float(la), 4), lon=round(float(lo), 4))
                for i, r, la, lo in zip(m['patch_id'], m['region'], m['lat'], m['lon'])]
+    explore = []
+    if (ART / 'explore.npz').exists():
+        x = np.load(ART / 'explore.npz')
+        explore = [dict(id=str(i), lat=round(float(la), 4), lon=round(float(lo), 4), label=str(lb))
+                   for i, la, lo, lb in zip(x['patch_id'], x['lat'], x['lon'], x['label'])]
     out = ROOT / 'public' / 'locations.json'
     out.parent.mkdir(exist_ok=True)
-    out.write_text(json.dumps(dict(regions=regions, patches=patches), separators=(',', ':')))
-    print(f'Saved {out} ({len(regions)} regions, {len(patches)} patches)')
+    out.write_text(json.dumps(dict(regions=regions, patches=patches, explore=explore), separators=(',', ':')))
+    print(f'Saved {out} ({len(regions)} regions, {len(patches)} patches, {len(explore)} exploration patches)')
 
 
 def main():
@@ -153,11 +194,15 @@ def main():
         print(f'{r["region"]:<22}{r["airport_km"]:>11.0f}  {r["airport"]}')
     for f in ('model.npz', 'targets.json', 'regions.json'):
         print(f'Saved {ART / f} ({(ART / f).stat().st_size / 1e6:.1f} MB)')
+    fit_explore()
     export_locations()
 
 
 if __name__ == '__main__':
     if '--locations' in sys.argv:
+        export_locations()
+    elif '--explore' in sys.argv:
+        fit_explore()
         export_locations()
     else:
         main()

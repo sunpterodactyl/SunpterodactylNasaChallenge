@@ -97,16 +97,27 @@ class Model:
         self.nov_lo, self.nov_hi = float(a['novelty_lo']), float(a['novelty_hi'])
         self.target_ids = list(a['target_id'])
         self.t_profile, self.t_texture, self.t_mag = a['target_profile'], a['target_texture'], a['target_mag']
+        # Optional exploration set: bare-terrain patches outside the curated regions.
+        self.explore = None
+        if (path.parent / 'explore.npz').exists():
+            x = np.load(path.parent / 'explore.npz')
+            self.explore = dict(x)
+            self.explore['Tz'] = self.zscore(x['texture'])
 
     def zscore(self, T):
         return (transform_texture(T, self.log_cols) - self.tex_mean) / self.tex_std
 
-    def distances(self, target_id):
+    def distances(self, target_id, which='known'):
+        """Raw component distances from the target to every patch in the known or explore set."""
         i = self.target_ids.index(target_id)
+        if which == 'known':
+            P, Tz, M = self.profiles, self.Tz, self.mag
+        else:
+            P, Tz, M = self.explore['profile'], self.explore['Tz'], self.explore['mag']
         return {
-            'profile': profile_dist(self.profiles, self.t_profile[i]),
-            'texture': texture_dist(self.Tz, self.zscore(self.t_texture[i]), self.icov),
-            'magnitude': magnitude_dist(self.mag, self.t_mag[i]),
+            'profile': profile_dist(P, self.t_profile[i]),
+            'texture': texture_dist(Tz, self.zscore(self.t_texture[i]), self.icov),
+            'magnitude': magnitude_dist(M, self.t_mag[i]),
         }
 
     def novelty(self, d_texture):

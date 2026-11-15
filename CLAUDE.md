@@ -13,6 +13,7 @@ Full spec: @docs/SPEC.md (read the relevant section before starting each milesto
 - Frontend: npm run dev
 - Verify data sources: python pipeline/verify_sources.py
 - Build corpus: python pipeline/build_corpus.py
+- Exploration corpus (new analogues): python pipeline/explore_corpus.py
 - Fit model artifacts: python pipeline/fit_model.py
 - Validate model: python pipeline/validate.py
 - CLI search: python -m backend.search --target marius_hills --objective mobility --stage early

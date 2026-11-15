@@ -153,3 +153,42 @@ three are close in score, so their order is unstable.
 
   These rules live in `backend/scoring.py`. Filling in `regions.csv` and rerunning
   `fit_model.py` turns the real scores on.
+
+# Discovering new analogues (added after M6)
+
+The main search only ranks patches inside the 22 curated regions, so it can
+only return known analogue sites. Discover widens the net:
+
+1. `pipeline/explore_corpus.py` stage 1 reads every ESA WorldCover 2021 v200
+   tile (2651 tiles, Planetary Computer `esa-worldcover`, asset `map`) at its
+   1/64 overview (~0.5 km samples). For each 0.25 deg cell it computes the
+   land share and the bare share (class 60 "bare / sparse vegetation" +
+   class 100 "moss and lichen"). Class 0 is nodata (sea outside coastlines)
+   and 80 is water. WorldCover stops at 60S, so Antarctica is never explored.
+2. Stage 2 keeps cells >= 95% land and >= 80% bare and drops cells within
+   1 deg of a curated region. It spreads the sample (at most 2 cells per
+   5 deg block, cap 1500) so the Sahara doesn't dominate, then reads
+   Copernicus patches with the same QC as M1.
+3. `fit_model.py` featurises them into `backend/artifacts/explore.npz` and
+   labels each with its nearest large/medium airport.
+4. `POST /api/discover` scores known and new patches together, so F is
+   calibrated on the same pool, and returns only the new ones. The message
+   says how many beat the best known analogue.
+
+Limits: new candidates have no curated field season, cost, permit or
+landform kind. "Bare" in WorldCover can include active dune fields, salt
+crusts and military or protected land. The novelty thresholds still come
+from the curated corpus.
+
+Run 2026-11-15: 2651 WorldCover tiles read, 0 failed (145 s). 29,959 of
+381,744 cells qualify; 671 near curated regions removed; 312 occupied 5 deg
+blocks give 593 candidates. Copernicus reads: 553 kept, 38 skipped
+(sea/nodata), 2 failed (333 s).
+
+`/api/discover`, mobility, early stage, about 35 ms locally:
+
+| target | best known (F) | best new (F) | new patches beating best known |
+| --- | --- | --- | --- |
+| marius_hills | pinacate_07 (0.937) | new_0004, Patagonia near El Bolsón AR (0.948) | 4 |
+| taurus_littrow | dry_valleys_08 (0.988) | new_0246, near Las Vegas US (0.875) | 0 |
+| tycho_rim | bonneville_04 (0.985) | new_0033, near Salta AR (0.933) | 0 |

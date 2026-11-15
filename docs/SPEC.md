@@ -39,6 +39,8 @@ terrain-mapper/
 
 Plus a hand-curated `regions.csv` (section 13).
 
+**Added after v1 (user request): ESA WorldCover 2021 v200** (Planetary Computer `esa-worldcover`, asset `map`) is used only by `pipeline/explore_corpus.py` to find bare-terrain cells outside the curated regions for the Discover page. `POST /api/discover` takes the same Brief and returns the same shape as `/api/search`.
+
 **UNVERIFIED until M0:** WMS Int16 units are meters; WMS resampling method when requesting fewer pixels than native; Mars longitude convention (-180..180 vs 0..360); whether the http endpoint works from the build machine (try https://planetarymaps.usgs.gov/... if not); Copernicus asset key is `data`; Copernicus is a surface model (includes canopy), so Earth regions must be bare terrain.
 
 **Fallback if WMS fails:** download one small regional DEM per target from USGS Astropedia, cache as GeoTIFF in `pipeline/data/`, read locally. Report the failure; do not silently switch.

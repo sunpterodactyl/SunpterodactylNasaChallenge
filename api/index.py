@@ -1,4 +1,4 @@
-"""FastAPI app: two routes (SPEC section 8). Vercel serves this file as a Python function.
+"""FastAPI app: the two SPEC section 8 routes plus /api/discover. Vercel serves this file as a Python function.
 
 Local:  uvicorn api.index:app --reload
 """
@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from fastapi import FastAPI, HTTPException  # noqa: E402
 
 from backend.model import get_model  # noqa: E402
-from backend.scoring import Brief, catalog, search  # noqa: E402
+from backend.scoring import Brief, catalog, discover, search  # noqa: E402
 
 app = FastAPI(title='Terrain Mapper')
 get_model()   # load artifacts once at import
@@ -28,3 +28,14 @@ def post_search(brief: Brief):
         return search(brief)
     except KeyError:
         raise HTTPException(404, f'unknown target_id: {brief.target_id}')
+
+
+@app.post('/api/discover')
+def post_discover(brief: Brief):
+    """Same Brief and response shape as /api/search, over new patches outside the curated regions."""
+    try:
+        return discover(brief)
+    except KeyError:
+        raise HTTPException(404, f'unknown target_id: {brief.target_id}')
+    except LookupError as e:
+        raise HTTPException(503, str(e))
