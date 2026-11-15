@@ -1,0 +1,10 @@
+# Keep CLI uploads small: only what the build and the Python function need.
+.venv/
+node_modules/
+dist/
+pipeline/out/
+pipeline/data/airports.csv
+.env
+.env.local
+.env.*.local
+.claude/

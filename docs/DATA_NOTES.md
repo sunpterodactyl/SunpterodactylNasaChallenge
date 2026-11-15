@@ -192,3 +192,18 @@ blocks give 593 candidates. Copernicus reads: 553 kept, 38 skipped
 | marius_hills | pinacate_07 (0.937) | new_0004, Patagonia near El Bolsón AR (0.948) | 4 |
 | taurus_littrow | dry_valleys_08 (0.988) | new_0246, near Las Vegas US (0.875) | 0 |
 | tycho_rim | bonneville_04 (0.985) | new_0033, near Salta AR (0.933) | 0 |
+
+# Deployment (M6)
+
+Deployed 2026-11-15 with `vercel deploy` from this branch to
+https://sunpterodactyl-nasa-challenge.vercel.app (the project's first
+deployment, so Vercel made it production). Python function bundle 58 MB.
+Acceptance: the brief `marius_hills / mobility / late / k=5` returns
+identical patch ids and F values from the deployed `/api/search` and
+`/api/discover` as from the local code. Responses take about 0.4 s;
+the catalog takes 0.9 s on a cold start.
+
+The Vercel project's production branch is `main`. Git-triggered production
+builds only work once this branch is merged, because `main` still has the
+old `app/` layout with no root `package.json`. That is why the first
+dashboard import failed with no deployment.
