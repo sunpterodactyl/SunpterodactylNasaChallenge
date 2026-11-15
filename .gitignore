@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.venv/
+__pycache__/
+*.pyc
+.env
+.vercel
+.DS_Store
+*.egg-info/
+tsconfig.tsbuildinfo
+pipeline/out/
+pipeline/data/airports.csv
+.env.local
+.env.*.local

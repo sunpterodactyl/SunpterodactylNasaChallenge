@@ -1,0 +1,8 @@
+-r requirements.txt
+# Offline pipeline only (never imported by backend/ or api/)
+scipy
+pandas
+scikit-learn
+rasterio
+requests
+uvicorn
