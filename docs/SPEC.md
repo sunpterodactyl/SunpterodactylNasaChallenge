@@ -48,7 +48,7 @@ Plus a hand-curated `regions.csv` (section 13).
 - **Patch:** 64x64 elevation grid at 500 m spacing (32 km square). 500 m is chosen because MOLA's global grid is about 463 m, so it is the coarsest common scale.
 - **Relative elevation:** always subtract the patch median. Absolute elevation is never compared across bodies.
 - **Body radii:** earth 6371008.8 m, moon 1737400 m, mars 3396190 m. Convert degrees to metres with these. Pixel width shrinks with cos(latitude).
-- **Target:** a Moon/Mars patch. Use mid-latitude targets only: marius\_hills (moon, 14.1, -56.7), taurus\_littrow (moon, 20.2, 30.8), tycho\_rim (moon, -43.3, -11.4), jezero\_delta (mars, 18.4, 77.5), gale (mars, -5.4, 137.8). Coordinates are approximate; verify.
+- **Target:** a Moon/Mars patch. Use mid-latitude targets only: marius\_hills (moon, 14.1, -56.7), taurus\_littrow (moon, 20.2, 30.8), tycho\_rim (moon, -43.3, -11.4), jezero\_delta (mars, 18.4, 77.5), gale (mars, -5.4, 137.8). Coordinates are approximate; verify. **Mars targets deferred (M0: MOLA WMS layer broken, see DATA_NOTES.md); v1 builds the three Moon targets only.**
 - **Earth corpus:** about 22 bare-terrain regions x 25 random patches each (jitter +-0.4 deg around the region centre). Skip patches with more than 5 percent nodata.
 
 ## 6. Fidelity algorithm

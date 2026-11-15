@@ -38,9 +38,17 @@ rim is visible in the hillshade), but switching to it needs a decision.
 - Astropedia mosaic: `Mars_MGS_MOLA_DEM_mosaic_global_463m.tif`, 23040 x 46080 Int16, nodata -32768, equirectangular metres on a sphere. It is stored in strips (one row per block), so a 32 km window reads about 70 rows x 92 KB remotely. That's fine for 2 targets; for repeated runs, cache a regional crop in `pipeline/data/` as SPEC section 4 says.
 - Copernicus reads use `Resampling.average` from 30 m to 500 m, which is a true area average.
 
-## Decision needed before M1
+## Decisions
 
-How should Mars targets (jezero_delta, gale) be sourced?
-
-1. Use the SPEC fallback: read the Astropedia MOLA mosaic, cache a GeoTIFF crop per Mars target in `pipeline/data/`, and record the source as Astropedia in provenance. (Recommended.)
-2. Wait for or report the WMS issue to USGS and keep Mars targets out until it's fixed.
+- **2026-11-15: Mars targets are left out for now.** `jezero_delta` and `gale` are
+  not built while the MOLA WMS layer is broken. v1 runs with the three Moon
+  targets only. The Astropedia fallback stays documented above in case Mars
+  comes back.
+- **Copernicus sea is 0, not nodata.** Checked during M1 prep: a patch over
+  the sea off Tenerife is 100% exactly 0.0 m with no NaN, and a Svalbard patch
+  is 25% exactly 0.0 (fjords). M1 QC therefore counts exact-zero cells as
+  nodata alongside NaN. Real land below sea level (Death Valley, Danakil) is
+  negative, not zero, so it is unaffected.
+- **Targets are read at 4x and block-averaged.** The WMS resampling method is
+  unsettled (see above), so M1 requests 256 x 256 and averages 4 x 4 blocks
+  down to 64 x 64. This matches the area average used for Copernicus.
