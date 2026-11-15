@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchCatalog, runSearch } from './api'
 import BriefForm from './components/BriefForm'
+import MapPage from './components/MapPage'
 import Results from './components/Results'
 import Sessions from './components/Sessions'
 import TerrainPair from './components/TerrainPair'
@@ -17,7 +18,11 @@ const DEFAULT_BRIEF: Omit<Brief, 'target_id'> = {
   k: 10,
 }
 
+type View = 'search' | 'map'
+const viewFromHash = (): View => (window.location.hash === '#/map' ? 'map' : 'search')
+
 export default function App() {
+  const [view, setView] = useState<View>(viewFromHash)
   const [catalog, setCatalog] = useState<Catalog | null>(null)
   const [brief, setBrief] = useState<Brief | null>(null)
   const [result, setResult] = useState<SearchResult | null>(null)
@@ -28,6 +33,12 @@ export default function App() {
   const [sessions, setSessions] = useState<Session[]>(() => loadSessions())
   const [starred, setStarred] = useState<string[]>([])
   const [notes, setNotes] = useState('')
+
+  useEffect(() => {
+    const onHash = () => setView(viewFromHash())
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
 
   useEffect(() => {
     fetchCatalog()
@@ -65,6 +76,10 @@ export default function App() {
       <header className="topbar">
         <h1>Terrain Mapper</h1>
         <p>Earth terrain patches ranked by 3D shape similarity to Moon targets</p>
+        <nav className="tabs" aria-label="Pages">
+          <a href="#/" aria-current={view === 'search' ? 'page' : undefined}>Search</a>
+          <a href="#/map" aria-current={view === 'map' ? 'page' : undefined}>Map</a>
+        </nav>
       </header>
 
       {error && (
@@ -76,6 +91,7 @@ export default function App() {
         </div>
       )}
 
+      {view === 'map' ? <MapPage /> : (
       <main className="layout">
         <aside className="sidebar">
           {catalog && brief ? (
@@ -121,6 +137,7 @@ export default function App() {
           onStar={(id) => setStarred((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))}
         />
       </main>
+      )}
     </div>
   )
 }

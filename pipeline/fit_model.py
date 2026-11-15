@@ -8,6 +8,9 @@ statistics and the novelty thresholds, and writes:
   backend/artifacts/model.npz     arrays the API loads once at import
   backend/artifacts/targets.json  target metadata and 64x64 relative grids
   backend/artifacts/regions.json  curated region table + nearest airport (M3)
+  public/locations.json           region and patch coordinates for the frontend map
+
+`python pipeline/fit_model.py --locations` rewrites only public/locations.json.
 
 pipeline/data/airports.csv is OurAirports (public domain), downloaded once from
 https://davidmegginson.github.io/ourairports-data/airports.csv (gitignored).
@@ -92,6 +95,29 @@ def relative_grid(z):
     return np.round(z - np.median(z)).astype(np.int16)
 
 
+def export_locations():
+    """Static file for the map page: every seed region (kept or dropped) and every kept patch."""
+    m = np.load(ART / 'model.npz')
+    kept = {r['region']: r for r in json.loads((ART / 'regions.json').read_text())}
+    counts = {r: int((m['region'] == r).sum()) for r in kept}
+    regions = []
+    for r in csv.DictReader(REGIONS_CSV.open()):
+        k = kept.get(r['region'])
+        regions.append(dict(
+            region=r['region'], lat=float(r['lat']), lon=float(r['lon']), kind=r['kind'],
+            status='kept' if k else 'dropped', patches=counts.get(r['region'], 0),
+            airport=k['airport'] if k else None, airport_km=k['airport_km'] if k else None,
+            field_months=k['field_months'] if k else None, cost_tier=k['cost_tier'] if k else None,
+            permit=k['permit'] if k else None, source=k['source'] if k else None,
+        ))
+    patches = [dict(id=str(i), region=str(r), lat=round(float(la), 4), lon=round(float(lo), 4))
+               for i, r, la, lo in zip(m['patch_id'], m['region'], m['lat'], m['lon'])]
+    out = ROOT / 'public' / 'locations.json'
+    out.parent.mkdir(exist_ok=True)
+    out.write_text(json.dumps(dict(regions=regions, patches=patches), separators=(',', ':')))
+    print(f'Saved {out} ({len(regions)} regions, {len(patches)} patches)')
+
+
 def main():
     e = np.load(OUT / 'earth_patches.npz')
     t = np.load(OUT / 'targets.npz')
@@ -127,7 +153,11 @@ def main():
         print(f'{r["region"]:<22}{r["airport_km"]:>11.0f}  {r["airport"]}')
     for f in ('model.npz', 'targets.json', 'regions.json'):
         print(f'Saved {ART / f} ({(ART / f).stat().st_size / 1e6:.1f} MB)')
+    export_locations()
 
 
 if __name__ == '__main__':
-    main()
+    if '--locations' in sys.argv:
+        export_locations()
+    else:
+        main()
