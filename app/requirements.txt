@@ -1,6 +1,0 @@
-fastapi
-pydantic>=2
-langchain-core
-langchain-openai
-langchain-anthropic
-uvicorn
