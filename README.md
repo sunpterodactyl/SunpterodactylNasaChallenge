@@ -9,6 +9,8 @@ confidence flag.
 Full spec: `docs/SPEC.md`. What the data sources actually returned, the
 validation results and every deviation from the spec: `docs/DATA_NOTES.md`.
 
+https://sunpterodactyl-nasa-challenge.vercel.app/
+
 ## Run locally
 
 ```bash
