@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { Component, Match, Novelty, SearchResult } from '../types'
 import Radar from './Radar'
 
@@ -37,7 +38,9 @@ function Detail({ m, starred, onStar }: { m: Match; starred: boolean; onStar: ()
         <div>
           <h3>{m.patch_id}</h3>
           <p className="muted num">
-            {m.lat.toFixed(3)}, {m.lon.toFixed(3)} · {m.kind}
+            {m.lat.toFixed(3)}, {m.lon.toFixed(3)} · {m.kind} ·{' '}
+            <a href={`https://www.openstreetmap.org/?mlat=${m.lat}&mlon=${m.lon}#map=10/${m.lat}/${m.lon}`}
+              target="_blank" rel="noreferrer">open map</a>
           </p>
         </div>
         <button className={`star ${starred ? 'on' : ''}`} aria-pressed={starred} onClick={onStar}>
@@ -80,6 +83,10 @@ function Detail({ m, starred, onStar }: { m: Match; starred: boolean; onStar: ()
 }
 
 interface Props {
+  title?: string
+  intro?: ReactNode
+  emptyText?: string
+  onDiscover?: () => void
   result: SearchResult | null
   selected: number
   starred: string[]
@@ -87,12 +94,15 @@ interface Props {
   onStar: (id: string) => void
 }
 
-export default function Results({ result, selected, starred, onSelect, onStar }: Props) {
+export default function Results({
+  title = 'Matches', intro, emptyText, onDiscover, result, selected, starred, onSelect, onStar,
+}: Props) {
   if (!result) {
     return (
       <section className="results">
-        <h2>Matches</h2>
-        <p className="empty-note">Set a brief and run a search to rank Earth patches.</p>
+        <h2>{title}</h2>
+        {intro}
+        <p className="empty-note">{emptyText ?? 'Set a brief and run a search to rank Earth patches.'}</p>
       </section>
     )
   }
@@ -100,11 +110,18 @@ export default function Results({ result, selected, starred, onSelect, onStar }:
   return (
     <section className="results" aria-live="polite">
       <div className="results-head">
-        <h2>Matches</h2>
+        <h2>{title}</h2>
         <NoveltyBadge n={result.novelty} />
       </div>
+      {intro}
       <p className={`novelty-note novelty-${result.novelty}`}>{NOVELTY_TEXT[result.novelty]}</p>
       {result.message && <p className="message">{result.message}</p>}
+      {onDiscover && (
+        <button className="discover-cta" onClick={onDiscover}>
+          Search for new similar analogues →
+          <small>Scan bare terrain outside these {'known'} sites</small>
+        </button>
+      )}
       {result.matches.length === 0 ? (
         <p className="empty-note">
           Nothing to show. Best fidelity reached: <b className="num">{result.best_fidelity.toFixed(3)}</b>.

@@ -27,7 +27,11 @@ Two terminals:
 npm run dev
 ```
 
-Open http://localhost:5173. Vite proxies `/api` to port 8000. The model
+Open http://localhost:5173. Vite proxies `/api` to port 8000.
+
+Optional: for the CARTO Voyager basemap on the Map page, copy `.env.example`
+to `.env.local` and set `VITE_CARTO_KEY`. Without a key the free CARTO light
+basemap is used. The model
 artifacts are committed in `backend/artifacts/`, so the app runs without
 rebuilding the corpus.
 
@@ -65,6 +69,19 @@ curl -L -o pipeline/data/airports.csv https://davidmegginson.github.io/ourairpor
   `pipeline/data/regions.csv`, which is mostly blank, so those scores show as n/a.
 - **Stage.** Changes the rule, not weights: early gates at F ≥ 0.5 and sorts
   by affordability; late gates at F ≥ 0.8 and sorts by fidelity.
+
+## Finding new analogues
+
+The Search page ranks only the 19 curated regions, so it returns known
+analogue sites. **Search for new similar analogues** (or the Discover tab)
+ranks 553 extra bare-terrain patches from across the globe that lie
+outside those regions. ESA WorldCover picked them as at least 80% bare or
+sparse ground. They're scored on the same scale as the known sites, and the
+page says how many beat the best known analogue. New candidates are
+unvetted: they have no field season, cost or permit data.
+
+Rebuild them with `.venv/bin/python pipeline/explore_corpus.py` (about
+8 minutes), then `fit_model.py`.
 
 ## Validation (region-blocked precision at 5)
 

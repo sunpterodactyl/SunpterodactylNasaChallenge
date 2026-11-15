@@ -24,10 +24,23 @@ interface Patch {
   lon: number
 }
 
+interface ExplorePatch {
+  id: string
+  lat: number
+  lon: number
+  label: string
+}
+
 interface Locations {
   regions: Region[]
   patches: Patch[]
+  explore?: ExplorePatch[]
 }
+
+const CARTO_KEY = import.meta.env.VITE_CARTO_KEY
+const TILES = CARTO_KEY
+  ? { url: `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${CARTO_KEY}`, subdomains: undefined }
+  : { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', subdomains: 'abcd' }
 
 export const KIND_COLOUR: Record<string, string> = {
   arid: '#b87a1e',
@@ -56,6 +69,7 @@ export default function MapPage() {
   const [error, setError] = useState<string | null>(null)
   const [focus, setFocus] = useState<{ lat: number; lon: number; zoom: number } | null>(null)
   const [active, setActive] = useState<string | null>(null)
+  const [showExplore, setShowExplore] = useState(true)
 
   useEffect(() => {
     fetch('/locations.json')
@@ -95,6 +109,13 @@ export default function MapPage() {
             dropped
           </li>
         </ul>
+        {!!data.explore?.length && (
+          <label className="layer-toggle">
+            <input type="checkbox" checked={showExplore} onChange={(e) => setShowExplore(e.target.checked)} />
+            <span className="dot explore" aria-hidden />
+            {data.explore.length} new candidate patches (Discover)
+          </label>
+        )}
         <ol className="region-list">
           {data.regions.map((r) => (
             <li key={r.region}>
@@ -120,11 +141,17 @@ export default function MapPage() {
       <div className="map-wrap">
         <MapContainer center={[15, 0]} zoom={2} minZoom={2} worldCopyJump className="map" aria-label="Map of Earth analogue regions">
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            url={TILES.url}
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            subdomains="abcd"
+            {...(TILES.subdomains ? { subdomains: TILES.subdomains } : {})}
             maxZoom={12}
           />
+          {showExplore && (data.explore ?? []).map((p) => (
+            <CircleMarker key={p.id} center={[p.lat, p.lon]} radius={2.5}
+              pathOptions={{ color: '#6b777c', weight: 1, fillColor: '#ffffff', fillOpacity: 0.9 }}>
+              <Tooltip>{p.id} · new candidate · {p.label}</Tooltip>
+            </CircleMarker>
+          ))}
           <FlyTo to={focus} />
           {data.patches.map((p) => (
             <CircleMarker key={p.id} center={[p.lat, p.lon]} radius={3}

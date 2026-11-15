@@ -226,3 +226,22 @@ input[type='range'] { width: 100%; accent-color: var(--ochre); }
   .map-side { border-right: 0; border-bottom: 1px solid var(--line); max-height: 320px; }
   .map-wrap { min-height: 60vh; }
 }
+
+/* discover */
+.secondary {
+  padding: 9px; border: 1px solid var(--ochre); border-radius: var(--radius); background: #fff;
+  color: var(--ink); font-weight: 600;
+}
+.secondary:hover:not(:disabled) { background: var(--ochre-soft); }
+.discover-cta {
+  width: 100%; margin: 4px 0 8px; padding: 10px 12px; text-align: left; font-weight: 600;
+  border: 1px dashed var(--ochre); border-radius: var(--radius); background: #fffaf1; color: var(--ink);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.discover-cta:hover { background: var(--ochre-soft); }
+.discover-cta small { font-weight: 400; color: var(--muted); }
+.discover-note { margin: 10px 0; padding: 8px 10px; border-left: 3px solid var(--ochre); background: #fffaf1; font-size: 13px; }
+.detail-head a { color: var(--ochre); }
+.dot.explore { background: #fff; border: 1px solid #6b777c; }
+.layer-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.layer-toggle input { accent-color: var(--ochre); }

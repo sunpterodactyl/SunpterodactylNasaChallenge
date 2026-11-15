@@ -29,3 +29,10 @@ export const runSearch = (brief: Brief) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(brief),
   })
+
+export const runDiscover = (brief: Brief) =>
+  request<SearchResult>('/api/discover', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(brief),
+  })

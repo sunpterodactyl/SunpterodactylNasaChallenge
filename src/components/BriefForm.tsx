@@ -18,9 +18,11 @@ interface Props {
   loading: boolean
   onChange: (b: Brief) => void
   onRun: () => void
+  runLabel?: string
+  secondary?: { label: string; onClick: () => void }
 }
 
-export default function BriefForm({ catalog, brief, loading, onChange, onRun }: Props) {
+export default function BriefForm({ catalog, brief, loading, onChange, onRun, runLabel = 'Run search', secondary }: Props) {
   const set = <K extends keyof Brief>(k: K, v: Brief[K]) => onChange({ ...brief, [k]: v })
   const bodies = ['moon', 'mars'] as const
 
@@ -115,8 +117,13 @@ export default function BriefForm({ catalog, brief, loading, onChange, onRun }: 
       </details>
 
       <button type="submit" className="run" disabled={loading}>
-        {loading ? 'Searching…' : 'Run search'}
+        {loading ? 'Searching…' : runLabel}
       </button>
+      {secondary && (
+        <button type="button" className="secondary" disabled={loading} onClick={secondary.onClick}>
+          {secondary.label}
+        </button>
+      )}
     </form>
   )
 }

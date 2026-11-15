@@ -10,3 +10,5 @@ __pycache__/
 tsconfig.tsbuildinfo
 pipeline/out/
 pipeline/data/airports.csv
+.env.local
+.env.*.local
