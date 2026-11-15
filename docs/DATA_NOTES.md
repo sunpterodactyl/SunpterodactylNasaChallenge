@@ -52,3 +52,52 @@ rim is visible in the hillshade), but switching to it needs a decision.
 - **Targets are read at 4x and block-averaged.** The WMS resampling method is
   unsettled (see above), so M1 requests 256 x 256 and averages 4 x 4 blocks
   down to 64 x 64. This matches the area average used for Copernicus.
+
+# Corpus build (M1)
+
+`python pipeline/build_corpus.py`, run 2026-11-15, about 1.5 min with 6
+region threads. Seed 42, 25 patches per region, jitter +-0.4 deg.
+
+| region | kind | kept | skipped | relief p5-p95, median (m) | status |
+| --- | --- | --- | --- | --- | --- |
+| atacama | arid | 25 | 0 | 1013 | ok |
+| namib | dune | 21 | 4 | 286 | ok |
+| gobi | arid | 25 | 0 | 270 | ok |
+| lut | arid | 25 | 0 | 168 | ok |
+| tibesti | volcanic | 25 | 0 | 868 | ok |
+| death_valley | arid | 25 | 0 | 1502 | ok |
+| askja | volcanic | 25 | 0 | 622 | ok |
+| mauna_loa | volcanic | 16 | 9 | 2217 | ok |
+| etna | volcanic | 11 | 14 | 1263 | dropped (<15) |
+| craters_of_the_moon | volcanic | 25 | 0 | 244 | ok |
+| tenerife | volcanic | 1 | 24 | 2226 | dropped (<15) |
+| pinacate | volcanic | 22 | 3 | 207 | ok |
+| devon | polar | 18 | 7 | 164 | ok |
+| dry_valleys | polar | 24 | 1 | 1519 | ok |
+| svalbard | polar | 6 | 19 | 746 | dropped (<15) |
+| uyuni | flat | 25 | 0 | 0 | ok |
+| bonneville | flat | 25 | 0 | 265 | ok |
+| taklamakan | dune | 25 | 0 | 42 | ok |
+| rub_al_khali | dune | 25 | 0 | 23 | ok |
+| qaidam | arid | 25 | 0 | 38 | ok |
+| danakil | volcanic | 25 | 0 | 428 | ok |
+| altiplano_north | mountain | 25 | 0 | 875 | ok |
+
+**Kept 451 patches from 19 regions.** No NaN remains; 17 kept patches had
+some nodata filled (max 4.5%). Below-sea-level land survives the sea rule
+(Danakil min -125 m, Death Valley min -86 m).
+
+Notes:
+
+- **Dropped regions are coastal or island sites.** Jittered patches land in the sea.
+  Etna, Tenerife and Svalbard could be kept by moving the centre inland or
+  shrinking the jitter. That's a curation choice for the region table.
+- **Uyuni is near-perfectly flat.** p5-p95 relief is 0 m in most patches, per-patch
+  std about 6 m. This is real (salt flat), but M2 must guard `log(relief)`
+  and `slope_p90` against zero.
+- **Vegetation:** Etna's and Mauna Loa's lower flanks carry vegetation, which a
+  surface model includes. Not filtered.
+- **Targets:** marius_hills relief 423 m, taurus_littrow 1982 m,
+  tycho_rim 988 m. The `tycho_rim` coordinate (-43.3, -11.4) is Tycho's
+  centre. The 32 km patch shows the central peak and floor, not the rim.
+  Either rename it or move it about 0.7 deg off-centre onto the rim.
