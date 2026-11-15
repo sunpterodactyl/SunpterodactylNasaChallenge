@@ -9,3 +9,4 @@ __pycache__/
 *.egg-info/
 tsconfig.tsbuildinfo
 pipeline/out/
+pipeline/data/airports.csv

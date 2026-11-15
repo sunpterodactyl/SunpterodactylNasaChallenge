@@ -135,3 +135,21 @@ kinds, the differences are small and noisy.
 Bootstrap stability (30 resamples within regions), top-3 regions unchanged:
 marius_hills 10/30, taurus_littrow 18/30, tycho_rim 22/30. Marius Hills' top
 three are close in score, so their order is unstable.
+
+# Regions, A/R/C and ranking (M3)
+
+- **Airport distance.** Measured as haversine from each region's centre to the nearest OurAirports
+  `large_airport` or `medium_airport` (public domain; `pipeline/data/airports.csv`,
+  gitignored, download URL in `fit_model.py`). Stored with the airport name in
+  `backend/artifacts/regions.json`. Caveat: "medium" includes restricted
+  fields (Death Valley's nearest is Desert Rock, on the Nevada Test Site), so
+  check the named airport.
+- **Curated values are mostly blank.** Only Dry Valleys has a cost tier and permit flag, so:
+  - **A** is the airport term only, with no permit factor, unless permit is filled in.
+  - **R** and **C** are blank (shown as "-").
+  - **Early stage** sorts by C. When C is blank for any passing patch it falls back to F and says so.
+  - **Filters** on cost or season exclude regions with blank values once the filter is moved off its default.
+  - **Pareto** uses only the scores known for every patch (currently F and A).
+
+  These rules live in `backend/scoring.py`. Filling in `regions.csv` and rerunning
+  `fit_model.py` turns the real scores on.

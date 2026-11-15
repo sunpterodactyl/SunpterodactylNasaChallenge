@@ -7,8 +7,13 @@ texture and magnitude features (pipeline/common.py), the Earth-only texture
 statistics and the novelty thresholds, and writes:
   backend/artifacts/model.npz     arrays the API loads once at import
   backend/artifacts/targets.json  target metadata and 64x64 relative grids
+  backend/artifacts/regions.json  curated region table + nearest airport (M3)
+
+pipeline/data/airports.csv is OurAirports (public domain), downloaded once from
+https://davidmegginson.github.io/ourairports-data/airports.csv (gitignored).
 """
 
+import csv
 import json
 import sys
 from pathlib import Path
@@ -25,6 +30,39 @@ from backend.model import texture_dist, transform_texture  # noqa: E402
 OUT = HERE / 'out'
 ART = ROOT / 'backend' / 'artifacts'
 RIDGE = 1e-2
+AIRPORTS_CSV = HERE / 'data' / 'airports.csv'
+REGIONS_CSV = HERE / 'data' / 'regions.csv'
+EARTH_R_KM = 6371.0088
+
+
+def haversine_km(lat1, lon1, lat2, lon2):
+    p1, p2 = np.radians(lat1), np.radians(lat2)
+    a = np.sin((p2 - p1) / 2) ** 2 + np.cos(p1) * np.cos(p2) * np.sin(np.radians(lon2 - lon1) / 2) ** 2
+    return 2 * EARTH_R_KM * np.arcsin(np.sqrt(a))
+
+
+def region_table(kept_regions):
+    """Curated columns as given (blank -> None) plus nearest large/medium airport."""
+    import pandas as pd
+    ap = pd.read_csv(AIRPORTS_CSV, usecols=['type', 'name', 'latitude_deg', 'longitude_deg', 'iso_country'],
+                     keep_default_na=False)
+    ap = ap[ap['type'].isin(['large_airport', 'medium_airport'])].reset_index(drop=True)
+    num = lambda v, f: f(v) if v not in ('', None) else None   # noqa: E731
+    rows = []
+    for r in csv.DictReader(REGIONS_CSV.open()):
+        if r['region'] not in kept_regions:
+            continue
+        km = haversine_km(float(r['lat']), float(r['lon']), ap['latitude_deg'].values, ap['longitude_deg'].values)
+        i = int(np.argmin(km))
+        rows.append(dict(
+            region=r['region'], lat=float(r['lat']), lon=float(r['lon']), kind=r['kind'],
+            airport_km=round(float(km[i]), 1),
+            airport=f"{ap['name'][i]} ({ap['iso_country'][i]}, {ap['type'][i].replace('_', ' ')})",
+            field_months=num(r['field_months'], float), stability=num(r['stability'], float),
+            cost_tier=num(r['cost_tier'], int), permit=num(r['permit'], lambda v: bool(int(v))),
+            source=r['source'] or None,
+        ))
+    return rows
 
 
 def featurise(Z):
@@ -82,7 +120,12 @@ def main():
                     grid=relative_grid(t['z'][i]).tolist())
                for i in range(len(t['z']))]
     (ART / 'targets.json').write_text(json.dumps(targets, separators=(',', ':')))
-    for f in ('model.npz', 'targets.json'):
+    regions = region_table(set(e['region'].tolist()))
+    (ART / 'regions.json').write_text(json.dumps(regions, indent=1))
+    print(f'\n{"region":<22}{"airport km":>11}  nearest large/medium airport')
+    for r in regions:
+        print(f'{r["region"]:<22}{r["airport_km"]:>11.0f}  {r["airport"]}')
+    for f in ('model.npz', 'targets.json', 'regions.json'):
         print(f'Saved {ART / f} ({(ART / f).stat().st_size / 1e6:.1f} MB)')
 
 
